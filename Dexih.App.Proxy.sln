@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{FF70EF51-95E1-4D0D-8168-F8A15D8A6452}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{FF148862-1739-440E-818C-ED8384BEDF3D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dexih.proxy", "src\dexih.proxy\dexih.proxy.csproj", "{29FF4575-C0B0-47D1-A8C2-E5EDBA73E100}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dexih.proxy.tests", "test\dexih.proxy.tests\dexih.proxy.tests.csproj", "{0A593AF6-DACD-456C-8BA0-B8FA622F9864}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{29FF4575-C0B0-47D1-A8C2-E5EDBA73E100} = {FF70EF51-95E1-4D0D-8168-F8A15D8A6452}
+		{0A593AF6-DACD-456C-8BA0-B8FA622F9864} = {FF148862-1739-440E-818C-ED8384BEDF3D}
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{29FF4575-C0B0-47D1-A8C2-E5EDBA73E100}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{29FF4575-C0B0-47D1-A8C2-E5EDBA73E100}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{29FF4575-C0B0-47D1-A8C2-E5EDBA73E100}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{29FF4575-C0B0-47D1-A8C2-E5EDBA73E100}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0A593AF6-DACD-456C-8BA0-B8FA622F9864}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A593AF6-DACD-456C-8BA0-B8FA622F9864}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A593AF6-DACD-456C-8BA0-B8FA622F9864}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A593AF6-DACD-456C-8BA0-B8FA622F9864}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

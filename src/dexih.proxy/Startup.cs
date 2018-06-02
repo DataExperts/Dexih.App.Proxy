@@ -43,7 +43,7 @@ namespace dexih.proxy
             if (env.IsDevelopment())
             {
                 // For more details on using the user secret store see http://go.microsoft.com/fwlink/?LinkID=532709
-                builder.AddUserSecrets<Startup>();
+                // builder.AddUserSecrets<Startup>();
             }
 
             Configuration = builder.Build();
@@ -112,7 +112,7 @@ namespace dexih.proxy
 
                 if (segments[1] == "ping")
                 {
-                    await context.Response.WriteAsync("Alive");
+                    await context.Response.WriteAsync("{ \"status\": \"alive\"}");
                 }
 
                 else if (segments[1] == "upload")
@@ -169,15 +169,16 @@ namespace dexih.proxy
                 // sends data to an async upload.
                 else if (segments[1] == "send")
                 {
-//                    var memoryStream = new MemoryStream();
-//                    await context.Request.Body.CopyToAsync(memoryStream);
-//                    memoryStream.Position = 0;
+                    var memoryStream = new MemoryStream();
+                    await context.Request.Body.CopyToAsync(memoryStream);
+                    memoryStream.Position = 0;
 
                     var key = HttpUtility.UrlDecode(segments[2]);
                     var securityKey = HttpUtility.UrlDecode(segments[3]);
 
                     var downloadObject = streams.GetDownloadStream(key, securityKey);
-                    downloadObject.DownloadStream = context.Request.Body;
+                    downloadObject.DownloadStream = memoryStream;
+                    await context.Response.WriteAsync("{ \"status\": \"success\"}");
                 }
 
                 else if (segments.Length >= 4)

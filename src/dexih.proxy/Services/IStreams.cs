@@ -1,8 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Threading.Tasks;
-using dexih.proxy.Models;
-using Microsoft.CodeAnalysis;
+﻿using dexih.proxy.Models;
 
 namespace dexih.proxy.Services
 {

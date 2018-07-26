@@ -46,7 +46,7 @@ namespace dexih.proxy.tests
 
             var ping = await result.Content.ReadAsStringAsync();
 
-            Assert.Equal("Alive", ping);
+            Assert.Equal("{ \"status\": \"alive\"}", ping);
         }
         
         [Fact]

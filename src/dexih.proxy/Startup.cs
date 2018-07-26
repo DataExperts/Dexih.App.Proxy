@@ -124,7 +124,7 @@ namespace dexih.proxy
 
                     var downloadObject = new DownloadObject(fileName, memoryStream);
                     streams.SetDownloadStream(downloadObject);
-                    var downloadUrl = $"{context.Request.Scheme}://{context.Request.Host}/{type}/{downloadObject.Key}/{downloadObject.SecurityKey}";
+                    var downloadUrl = $"{context.Request.Scheme}://{context.Request.Host}/{type}/{HttpUtility.UrlEncode(downloadObject.Key)}/{HttpUtility.UrlEncode(downloadObject.SecurityKey)}";
                     await context.Response.WriteAsync(downloadUrl);
                 }
                 
@@ -145,8 +145,8 @@ namespace dexih.proxy
 
                     var downloadObject = new DownloadObject(fileName, null);
                     streams.SetDownloadStream(downloadObject);
-                    var downloadUrl = $"{context.Request.Scheme}://{context.Request.Host}/{type}/{downloadObject.Key}/{downloadObject.SecurityKey}";
-                    var uploadUrl = $"{context.Request.Scheme}://{context.Request.Host}/send/{downloadObject.Key}/{downloadObject.SecurityKey}";
+                    var downloadUrl = $"{context.Request.Scheme}://{context.Request.Host}/{type}/{HttpUtility.UrlEncode(downloadObject.Key)}/{HttpUtility.UrlEncode(downloadObject.SecurityKey)}";
+                    var uploadUrl = $"{context.Request.Scheme}://{context.Request.Host}/send/{HttpUtility.UrlEncode(downloadObject.Key)}/{HttpUtility.UrlEncode(downloadObject.SecurityKey)}";
                     var json = new JObject
                     {
                         {"DownloadUrl", downloadUrl}, 

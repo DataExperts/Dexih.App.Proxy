@@ -18,8 +18,8 @@ namespace dexih.proxy
 {
     public class Startup
     {
-        private int downloadTimeout = 300;
-        private int cleanupInterval = 300;
+        private readonly int downloadTimeout = 300;
+        private readonly int cleanupInterval = 300;
         
         public Startup(IHostingEnvironment env)
         {

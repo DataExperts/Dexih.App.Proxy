@@ -7,11 +7,9 @@
     <Folder Include="wwwroot\" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Dexih.Utils.Crypto">
-      <Version>0.1.7</Version>
+    <PackageReference Include="Dexih.Utils.Crypto" Version="0.1.7">
     </PackageReference>
-    <PackageReference Include="Dexih.Utils.MessageHelpers">
-      <Version>0.1.8</Version>
+    <PackageReference Include="Dexih.Utils.MessageHelpers" Version="0.1.8">
     </PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>

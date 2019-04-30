@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Text;
 using System.Web;
 using dexih.proxy.Models;
 using dexih.proxy.Services;
@@ -90,6 +91,8 @@ namespace dexih.proxy
             
             app.Run(async (context) =>
             {
+                try
+                {
                 var maxRequestBodySize = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
                 if (maxRequestBodySize != null)
                 {
@@ -107,8 +110,16 @@ namespace dexih.proxy
                 else if (segments[1] == "upload")
                 {
                     var memoryStream = new MemoryStream();
-                    await context.Request.Body.CopyToAsync(memoryStream);
-                    memoryStream.Position = 0;
+                    var files = context.Request.Form.Files;
+                    if (files.Count >= 1)
+                    {
+                        await files[0].CopyToAsync(memoryStream);
+                        memoryStream.Position = 0;
+                    }
+                    else
+                    {
+                        throw new Exception("The file upload only supports one file.");
+                    }
 
                     var type = "";
                     var fileName = "";
@@ -158,16 +169,35 @@ namespace dexih.proxy
                 // sends data to an async upload.
                 else if (segments[1] == "send")
                 {
-                    var memoryStream = new MemoryStream();
-                    await context.Request.Body.CopyToAsync(memoryStream);
-                    memoryStream.Position = 0;
-
                     var key = HttpUtility.UrlDecode(segments[2]);
                     var securityKey = HttpUtility.UrlDecode(segments[3]);
-
                     var downloadObject = streams.GetDownloadStream(key, securityKey);
+
+                    var memoryStream = new MemoryStream();
+                    if (context.Request.HasFormContentType)
+                    {
+                        var files = context.Request.Form.Files;
+                        if (files.Count >= 1)
+                        {
+                            await files[0].CopyToAsync(memoryStream);
+                            memoryStream.Position = 0;
+                        }
+                        else
+                        {
+                            throw new Exception("The file upload only supports one file.");
+                        }
+                    }
+                    else
+                    {
+                        await context.Request.Body.CopyToAsync(memoryStream);
+//                    memoryStream.Position = 0;
+//                    var temp = Encoding.ASCII.GetString(memoryStream.ToArray());
+                        memoryStream.Position = 0;
+                    }
+
                     downloadObject.DownloadStream = memoryStream;
-                    await context.Response.WriteAsync("{ \"status\": \"success\"}");
+
+                    // await context.Response.WriteAsync("{ \"status\": \"success\"}");
                 }
 
                 else if (segments.Length >= 4)
@@ -218,6 +248,14 @@ namespace dexih.proxy
                     }
 
                 }
+                
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
+
             });
         }
     }

@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace dexih.proxy.Models
 {
-    public class DownloadObject
+    public class DownloadObject : IDisposable
     {
         public DownloadObject(string fileName, Stream stream)
         {
@@ -41,6 +41,11 @@ namespace dexih.proxy.Models
                 }
             }
             await DownloadStream.CopyToAsync(stream);
+        }
+        
+        public void Dispose()
+        {
+            DownloadStream?.Dispose();
         }
     }
 }

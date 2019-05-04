@@ -93,89 +93,23 @@ namespace dexih.proxy
             {
                 try
                 {
-                var maxRequestBodySize = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
-                if (maxRequestBodySize != null)
-                {
-                    maxRequestBodySize.MaxRequestBodySize = 1_000_000_000;
-                }
-                    
-                var path = context.Request.Path;
-                var segments = path.Value.Split('/');
-
-                if (segments[1] == "ping")
-                {
-                    await context.Response.WriteAsync("{ \"status\": \"alive\"}");
-                }
-
-                else if (segments[1] == "upload")
-                {
-                    var memoryStream = new MemoryStream();
-                    var files = context.Request.Form.Files;
-                    if (files.Count >= 1)
+                    var maxRequestBodySize = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
+                    if (maxRequestBodySize != null)
                     {
-                        await files[0].CopyToAsync(memoryStream);
-                        memoryStream.Position = 0;
-                    }
-                    else
-                    {
-                        throw new Exception("The file upload only supports one file.");
+                        maxRequestBodySize.MaxRequestBodySize = 1_000_000_000;
                     }
 
-                    var type = "";
-                    var fileName = "";
-                    if (segments.Length > 2)
+                    var path = context.Request.Path;
+                    var segments = path.Value.Split('/');
+
+                    if (segments[1] == "ping")
                     {
-                        type = segments[2];
-                        fileName = segments[3];
-                    }
-                    else
-                    {
-                        throw new Exception($"Use the format {context.Request.Scheme}://{context.Request.Host}/type/fileName");
+                        await context.Response.WriteAsync("{ \"status\": \"alive\"}");
                     }
 
-                    var downloadObject = new DownloadObject(fileName, memoryStream);
-                    streams.SetDownloadStream(downloadObject);
-                    var downloadUrl = $"{context.Request.Scheme}://{context.Request.Host}/{type}/{HttpUtility.UrlEncode(downloadObject.Key)}/{HttpUtility.UrlEncode(downloadObject.SecurityKey)}";
-                    await context.Response.WriteAsync(downloadUrl);
-                }
-                
-                // starts an async upload/download
-                else if (segments[1] == "start")
-                {
-                    var type = "";
-                    var fileName = "";
-                    if (segments.Length > 2)
+                    else if (segments[1] == "upload")
                     {
-                        type = segments[2];
-                        fileName = segments[3];
-                    }
-                    else
-                    {
-                        throw new Exception($"Use the format {context.Request.Scheme}://{context.Request.Host}/type/fileName");
-                    }
-
-                    var downloadObject = new DownloadObject(fileName, null);
-                    streams.SetDownloadStream(downloadObject);
-                    var downloadUrl = $"{context.Request.Scheme}://{context.Request.Host}/{type}/{HttpUtility.UrlEncode(downloadObject.Key)}/{HttpUtility.UrlEncode(downloadObject.SecurityKey)}";
-                    var uploadUrl = $"{context.Request.Scheme}://{context.Request.Host}/send/{HttpUtility.UrlEncode(downloadObject.Key)}/{HttpUtility.UrlEncode(downloadObject.SecurityKey)}";
-                    var json = new JObject
-                    {
-                        {"DownloadUrl", downloadUrl}, 
-                        {"UploadUrl", uploadUrl}
-                    };
-                    await context.Response.WriteAsync(json.ToString());
-                }
-                
-                // sends data to an async upload.
-                else if (segments[1] == "send")
-                {
-                    var key = HttpUtility.UrlDecode(segments[2]);
-                    var securityKey = HttpUtility.UrlDecode(segments[3]);
-                    var downloadObject = streams.GetDownloadStream(key, securityKey);
-
-                    var memoryStream = new MemoryStream();
-                    if (context.Request.HasFormContentType)
-                    {
+                        var memoryStream = new MemoryStream();
                         var files = context.Request.Form.Files;
                         if (files.Count >= 1)
                         {
@@ -186,69 +120,146 @@ namespace dexih.proxy
                         {
                             throw new Exception("The file upload only supports one file.");
                         }
+
+                        var type = "";
+                        var fileName = "";
+                        if (segments.Length > 2)
+                        {
+                            type = segments[2];
+                            fileName = segments[3];
+                        }
+                        else
+                        {
+                            throw new Exception(
+                                $"Use the format {context.Request.Scheme}://{context.Request.Host}/type/fileName");
+                        }
+
+                        var downloadObject = new DownloadObject(fileName, memoryStream);
+                        streams.SetDownloadStream(downloadObject);
+                        var downloadUrl =
+                            $"{context.Request.Scheme}://{context.Request.Host}/{type}/{HttpUtility.UrlEncode(downloadObject.Key)}/{HttpUtility.UrlEncode(downloadObject.SecurityKey)}";
+                        await context.Response.WriteAsync(downloadUrl);
                     }
-                    else
+
+                    // starts an async upload/download
+                    else if (segments[1] == "start")
                     {
-                        await context.Request.Body.CopyToAsync(memoryStream);
+                        var type = "";
+                        var fileName = "";
+                        if (segments.Length > 2)
+                        {
+                            type = segments[2];
+                            fileName = segments[3];
+                        }
+                        else
+                        {
+                            throw new Exception(
+                                $"Use the format {context.Request.Scheme}://{context.Request.Host}/type/fileName");
+                        }
+
+                        var downloadObject = new DownloadObject(fileName, null);
+                        streams.SetDownloadStream(downloadObject);
+                        var downloadUrl =
+                            $"{context.Request.Scheme}://{context.Request.Host}/{type}/{HttpUtility.UrlEncode(downloadObject.Key)}/{HttpUtility.UrlEncode(downloadObject.SecurityKey)}";
+                        var uploadUrl =
+                            $"{context.Request.Scheme}://{context.Request.Host}/send/{HttpUtility.UrlEncode(downloadObject.Key)}/{HttpUtility.UrlEncode(downloadObject.SecurityKey)}";
+                        var json = new JObject
+                        {
+                            {"DownloadUrl", downloadUrl},
+                            {"UploadUrl", uploadUrl}
+                        };
+                        await context.Response.WriteAsync(json.ToString());
+                    }
+
+                    // sends data to an async upload.
+                    else if (segments[1] == "send")
+                    {
+                        var key = HttpUtility.UrlDecode(segments[2]);
+                        var securityKey = HttpUtility.UrlDecode(segments[3]);
+                        var downloadObject = streams.GetDownloadStream(key, securityKey);
+
+                        var memoryStream = new MemoryStream();
+                        if (context.Request.HasFormContentType)
+                        {
+                            var files = context.Request.Form.Files;
+                            if (files.Count >= 1)
+                            {
+                                await files[0].CopyToAsync(memoryStream);
+                                memoryStream.Position = 0;
+                            }
+                            else
+                            {
+                                throw new Exception("The file upload only supports one file.");
+                            }
+                        }
+                        else
+                        {
+                            await context.Request.Body.CopyToAsync(memoryStream);
 //                    memoryStream.Position = 0;
 //                    var temp = Encoding.ASCII.GetString(memoryStream.ToArray());
-                        memoryStream.Position = 0;
-                    }
-
-                    downloadObject.DownloadStream = memoryStream;
-
-                    // await context.Response.WriteAsync("{ \"status\": \"success\"}");
-                }
-
-                else if (segments.Length >= 4)
-                {
-                    var command = segments[1];
-                    var key = HttpUtility.UrlDecode(segments[2]);
-                    var securityKey = HttpUtility.UrlDecode(segments[3]);
-
-                    try
-                    {
-                        var downloadStream = streams.GetDownloadStream(key, securityKey);
-
-                        switch (command)
-                        {
-                            case "file":
-                                context.Response.ContentType = "application/octet-stream";
-                                break;
-                            case "csv" :
-                                context.Response.ContentType = "text/csv";
-                                break;
-                            case "json" :
-                                context.Response.ContentType = "application/json";
-                                break;
-                            default:
-                                throw new ArgumentOutOfRangeException($"The command {command} was not recognized.");
+                            memoryStream.Position = 0;
                         }
-                        
-                        context.Response.StatusCode = 200;
-                        context.Response.Headers.Add("Content-Disposition", "attachment; filename=" + downloadStream.FileName);
-                        await downloadStream.CopyDownLoadStream(context.Response.Body, downloadTimeout);
-                        downloadStream.DownloadStream.Close();
-                        streams.RemoveDownloadStream(key);
+
+                        downloadObject.DownloadStream = memoryStream;
+
+                        // await context.Response.WriteAsync("{ \"status\": \"success\"}");
                     }
-                    catch (Exception e)
+
+                    else if (segments.Length >= 4)
                     {
-                        context.Response.StatusCode = 200;
-                        context.Response.ContentType = "application/json";
+                        var command = segments[1];
+                        var key = HttpUtility.UrlDecode(segments[2]);
+                        var securityKey = HttpUtility.UrlDecode(segments[3]);
 
-                        var rand = EncryptString.GenerateRandomKey();
-
-                        var returnValue = new ReturnValue(false, "Data reader failed with error: " + e.Message, e);
-                        using (var writer = new StreamWriter(context.Response.Body))
+                        try
                         {
-                            var result = Json.SerializeObject(returnValue, rand);
-                            await writer.WriteAsync(result);
-                            await writer.FlushAsync().ConfigureAwait(false);
+                            var downloadStream = streams.GetDownloadStream(key, securityKey);
+
+                            switch (command)
+                            {
+                                case "file":
+                                    context.Response.ContentType = "application/octet-stream";
+                                    break;
+                                case "csv":
+                                    context.Response.ContentType = "text/csv";
+                                    break;
+                                case "json":
+                                    context.Response.ContentType = "application/json";
+                                    break;
+                                default:
+                                    throw new ArgumentOutOfRangeException($"The command {command} was not recognized.");
+                            }
+
+                            context.Response.StatusCode = 200;
+
+                            if (!string.IsNullOrEmpty(downloadStream.FileName))
+                            {
+                                context.Response.Headers.Add("Content-Disposition",
+                                    "attachment; filename=" + downloadStream.FileName);
+                            }
+
+                            await downloadStream.CopyDownLoadStream(context.Response.Body, downloadTimeout);
+                            downloadStream.DownloadStream.Close();
+                            streams.RemoveDownloadStream(key);
                         }
+                        catch (Exception e)
+                        {
+                            context.Response.StatusCode = 200;
+                            context.Response.ContentType = "application/json";
+
+                            var rand = EncryptString.GenerateRandomKey();
+
+                            var returnValue = new ReturnValue(false, "Data reader failed with error: " + e.Message, e);
+                            using (var writer = new StreamWriter(context.Response.Body))
+                            {
+                                var result = Json.SerializeObject(returnValue, rand);
+                                await writer.WriteAsync(result);
+                                await writer.FlushAsync().ConfigureAwait(false);
+                            }
+                        }
+
                     }
 
-                }
-                
                 }
                 catch (Exception e)
                 {

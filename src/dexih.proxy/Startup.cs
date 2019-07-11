@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Text;
 using System.Web;
 using dexih.proxy.Models;
 using dexih.proxy.Services;
@@ -104,6 +103,8 @@ namespace dexih.proxy
 
                     if (segments[1] == "ping")
                     {
+                        context.Response.StatusCode = 200;
+                        context.Response.ContentType = "application/json";
                         await context.Response.WriteAsync("{ \"status\": \"alive\"}");
                     }
 

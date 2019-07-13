@@ -27,6 +27,13 @@ popd
 
 pushd ${DEPLOYDIR}
     zip -r ../deploy.zip *
-    scp -i ~/Source/ssh/dexih.pem ../deploy.zip ubuntu@ec2-3-19-63-151.us-east-2.compute.amazonaws.com:/home/ubuntu
+    scp -i ~/Source/ssh/dexih.pem ../deploy.zip ubuntu@ec2-3-13-162-42.us-east-2.compute.amazonaws.com:/home/ubuntu
     rm ../deploy.zip
 popd
+
+# remote commands
+ssh -i ~/Source/ssh/dexih.pem -t ubuntu@ec2-3-13-162-42.us-east-2.compute.amazonaws.com "/home/ubuntu/update.sh"
+if [ $? -ne 0 ]; then
+    >&2 echo SSH to AWS Failed
+    exit 1
+fi

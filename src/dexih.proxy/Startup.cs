@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,8 +19,9 @@ namespace dexih.proxy
 {
     public class Startup
     {
-        private readonly int downloadTimeout = 300;
-        private readonly int cleanupInterval = 300;
+        private int downloadTimeout = 300;
+        private int cleanupInterval = 300;
+        private string hostName;
         
         public Startup(IHostingEnvironment env)
         {
@@ -37,14 +39,17 @@ namespace dexih.proxy
 
             Configuration = builder.Build();
 
-            if (!string.IsNullOrEmpty(Configuration["DownloadTimeout"]))
+            var appSettings = Configuration.GetSection("AppSettings");
+
+            if (!string.IsNullOrEmpty(appSettings["DownloadTimeout"]))
             {
-                downloadTimeout = Convert.ToInt32(Configuration["DownloadTimeout"]);
+                downloadTimeout = Convert.ToInt32(appSettings["DownloadTimeout"]);
             }
-            if (!string.IsNullOrEmpty(Configuration["CleanUpInterval"]))
+            if (!string.IsNullOrEmpty(appSettings["CleanUpInterval"]))
             {
-                cleanupInterval = Convert.ToInt32(Configuration["CleanUpInterval"]);
+                cleanupInterval = Convert.ToInt32(appSettings["CleanUpInterval"]);
             }
+            hostName = appSettings["HostName"];
         }
 
 
@@ -84,12 +89,28 @@ namespace dexih.proxy
                     .WithMethods()
                     .WithOrigins();
             });
+            
+            // these headers pass the client ipAddress from proxy servers (such as nginx)
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor |
+                                   ForwardedHeaders.XForwardedProto,
+            }); 
 
             app.UseHttpsRedirection();
             // app.UseMvc();
             
             app.Run(async (context) =>
             {
+                string GetHost()
+                {
+                    if (string.IsNullOrEmpty(hostName))
+                    {
+                        return $"{context.Request.Scheme}://{context.Request.Host}";
+                    }
+                    return hostName;
+                }
+
                 try
                 {
                     var maxRequestBodySize = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
@@ -105,7 +126,7 @@ namespace dexih.proxy
                     {
                         context.Response.StatusCode = 200;
                         context.Response.ContentType = "application/json";
-                        await context.Response.WriteAsync("{ \"status\": \"alive\"}");
+                        await context.Response.WriteAsync("{ \"Status\": \"Alive\"}");
                     }
 
                     else if (segments[1] == "upload")
@@ -138,7 +159,7 @@ namespace dexih.proxy
                         var downloadObject = new DownloadObject(fileName, memoryStream);
                         streams.SetDownloadStream(downloadObject);
                         var downloadUrl =
-                            $"{context.Request.Scheme}://{context.Request.Host}/{type}/{HttpUtility.UrlEncode(downloadObject.Key)}/{HttpUtility.UrlEncode(downloadObject.SecurityKey)}";
+                            $"{GetHost()}/{type}/{HttpUtility.UrlEncode(downloadObject.Key)}/{HttpUtility.UrlEncode(downloadObject.SecurityKey)}";
                         await context.Response.WriteAsync(downloadUrl);
                     }
 
@@ -161,9 +182,9 @@ namespace dexih.proxy
                         var downloadObject = new DownloadObject(fileName, null);
                         streams.SetDownloadStream(downloadObject);
                         var downloadUrl =
-                            $"{context.Request.Scheme}://{context.Request.Host}/{type}/{HttpUtility.UrlEncode(downloadObject.Key)}/{HttpUtility.UrlEncode(downloadObject.SecurityKey)}";
+                            $"{GetHost()}/{type}/{HttpUtility.UrlEncode(downloadObject.Key)}/{HttpUtility.UrlEncode(downloadObject.SecurityKey)}";
                         var uploadUrl =
-                            $"{context.Request.Scheme}://{context.Request.Host}/send/{HttpUtility.UrlEncode(downloadObject.Key)}/{HttpUtility.UrlEncode(downloadObject.SecurityKey)}";
+                            $"{GetHost()}/send/{HttpUtility.UrlEncode(downloadObject.Key)}/{HttpUtility.UrlEncode(downloadObject.SecurityKey)}";
                         var json = new JObject
                         {
                             {"DownloadUrl", downloadUrl},
@@ -258,9 +279,7 @@ namespace dexih.proxy
                                 await writer.FlushAsync().ConfigureAwait(false);
                             }
                         }
-
                     }
-
                 }
                 catch (Exception e)
                 {

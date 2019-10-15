@@ -6,20 +6,20 @@ namespace dexih.proxy.Models
 {
     public class DownloadObject : IDisposable
     {
-        public DownloadObject(string fileName, Stream stream)
+        public DownloadObject(string fileName, string type, Stream stream, bool isError)
         {
-            Key = Guid.NewGuid().ToString();
-            SecurityKey = Dexih.Utils.Crypto.EncryptString.GenerateRandomKey().Replace("+", "").Replace("/", "");
             AddedDateTime = DateTime.Now;
-            DownloadStream = stream;
             FileName = fileName;
+            Type = type;
+            DownloadStream = new BufferedStream(stream);
+            IsError = isError;
         }
-
-        public string Key { get; private set; }
-        public string SecurityKey { get; private set; }
         public Stream DownloadStream { get; set; }
         public string FileName { get; private set; }
+        public string Type { get; set; }
         public DateTime AddedDateTime { get; private set; }
+        
+        public bool IsError { get; set; }
 
         /// <summary>
         /// Copy the uploaded stream for download.

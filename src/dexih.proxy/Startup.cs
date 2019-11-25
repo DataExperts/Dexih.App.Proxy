@@ -175,7 +175,7 @@ namespace dexih.proxy
                             catch (Exception e)
                             {
                                 var returnValue = new ReturnValue(false, "Set raw call failed: " + e.Message, e);
-                                SendFailedResponse(returnValue);
+                                await SendFailedResponse(returnValue);
                             }
 
                             break;
@@ -193,7 +193,7 @@ namespace dexih.proxy
                             catch (Exception e)
                             {
                                 var returnValue = new ReturnValue(false, "Set raw call failed: " + e.Message, e);
-                                SendFailedResponse(returnValue);
+                                await SendFailedResponse(returnValue);
                             }
 
                             break;
@@ -241,7 +241,7 @@ namespace dexih.proxy
                             catch (Exception e)
                             {
                                 var returnValue = new ReturnValue(false, "Proxy error: " + e.Message, e);
-                                SendFailedResponse(returnValue);
+                                await SendFailedResponse(returnValue);
                             }
 
                             break;

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Text.Json;
 using System.Threading.Tasks;
 using dexih.proxy.Models;
 using Dexih.Utils.Crypto;
@@ -10,7 +11,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,12 +28,10 @@ namespace dexih.proxy
         {
             for (var i = 0; i < 10; i++)
             {
-                
-                var downloadObject = memoryCache.Get<T>(key);
-                if (downloadObject != null)
+
+                if (memoryCache.TryGetValue<T>(key, out var value))
                 {
-                    memoryCache.Remove(key);
-                    return downloadObject;
+                    return value;
                 }
 
                 await Task.Delay(1000);
@@ -121,6 +119,12 @@ namespace dexih.proxy
             app.UseHttpsRedirection();
             // app.UseMvc();
             
+            var serializeOptions = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = true
+            };
+            
             app.Run(async (context) =>
             {
                 async Task SendFailedResponse(ReturnValue returnValue)
@@ -130,9 +134,11 @@ namespace dexih.proxy
 
                     using (var writer = new StreamWriter(context.Response.Body))
                     {
-                        var result = Json.SerializeObject(returnValue, rand);
-                        await writer.WriteAsync(result);
-                        await writer.FlushAsync().ConfigureAwait(false);
+                        await JsonSerializer.SerializeAsync(writer.BaseStream, returnValue, options: serializeOptions);
+
+                        // var result = Json.SerializeObject(returnValue, rand);
+                        // await writer.WriteAsync(result);
+                        // await writer.FlushAsync().ConfigureAwait(false);
                     }
                 }
                 
@@ -162,7 +168,7 @@ namespace dexih.proxy
                         case "ping":
                             context.Response.StatusCode = 200;
                             context.Response.ContentType = "application/json";
-                            await context.Response.WriteAsync("{ \"Status\": \"Alive\"}");
+                            await context.Response.WriteAsync("{ \"status\": \"alive\"}");
                             break;
 
                         case "setRaw":
@@ -287,9 +293,9 @@ namespace dexih.proxy
                                 
                                 var readWriteStream = new ReadWriteStream();
                                 var uploadObject = new DownloadObject(fileName, type, readWriteStream, false);
+                                await stream.CopyToAsync(readWriteStream);
                                 memoryCache.Set(key, uploadObject, TimeSpan.FromSeconds(cleanupInterval));
 
-                                await stream.CopyToAsync(readWriteStream);
                                 await context.Response.WriteAsync("{\"success\": true}");
 
                             }

@@ -1,18 +1,14 @@
-using System;
 using System.Diagnostics;
-using System.Net.Cache;
 using System.Net.Http;
-using System.Runtime;
 using System.Text;
+using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
-using System.Timers;
+using Dexih.Utils.MessageHelpers;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Xunit;
-using dexih.proxy;
 using Microsoft.AspNetCore.TestHost;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Xunit.Abstractions;
 
 namespace dexih.proxy.tests
@@ -22,6 +18,12 @@ namespace dexih.proxy.tests
         private TestServer _server;
         private readonly ITestOutputHelper _output;
         private HttpClient Client { get; set; }
+        
+        private JsonSerializerOptions serializeOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true
+        };
         
         public UnitTests(ITestOutputHelper output)
         {
@@ -52,19 +54,20 @@ namespace dexih.proxy.tests
         [Fact]
         public async Task SendSimpleJson()
         {
-            var content = new StringContent("{ test: \"worked\" }", Encoding.UTF8, "application/json");
-
-            var result = await Client.PostAsync("/upload/json/file.json", content);
+            var content = new StringContent("{ \"test\": \"worked\" }", Encoding.UTF8, "application/json");
+            var result = await Client.PostAsync("/upload/key/json/file.json", content);
             Assert.True(result.IsSuccessStatusCode);
-            var url = await result.Content.ReadAsStringAsync();
 
-            var result2 = await Client.GetAsync(url);
-            var jsonText = await result2.Content.ReadAsStringAsync();
-            var json = JObject.Parse(jsonText); 
+            var returnValue = await JsonSerializer.DeserializeAsync<ReturnValue>(await result.Content.ReadAsStreamAsync(), serializeOptions);
+            Assert.Equal(true, returnValue.Success);
+
+            var result2 = await Client.GetAsync("/download/key/json/file.json");
+            var value = await result2.Content.ReadAsStringAsync();
+            var json = JsonDocument.Parse(value);
 
             Assert.Equal("file.json", result2.Content.Headers.ContentDisposition.FileName);
             Assert.Equal("application/json", result2.Content.Headers.ContentType.ToString());
-            Assert.Equal("worked", json["test"]);
+            Assert.Equal("worked", json.RootElement.GetProperty("test").GetString());
         }
         
         [Fact]
@@ -72,11 +75,11 @@ namespace dexih.proxy.tests
         {
             var content = new StringContent("col1,col2,col3", Encoding.UTF8, "text/csv");
 
-            var result = await Client.PostAsync("/upload/csv/text.csv", content);
-            Assert.True(result.IsSuccessStatusCode);
-            var url = await result.Content.ReadAsStringAsync();
+            var result = await Client.PostAsync("/upload/key/csv/text.csv", content);
+            var returnValue = await JsonSerializer.DeserializeAsync<ReturnValue>(await result.Content.ReadAsStreamAsync(), serializeOptions);
+            Assert.Equal(true, returnValue.Success);
 
-            var result2 = await Client.GetAsync(url);
+            var result2 = await Client.GetAsync("/download/key/csv/text.csv");
             var csvText = await result2.Content.ReadAsStringAsync();
 
             Assert.Equal("text.csv", result2.Content.Headers.ContentDisposition.FileName);
@@ -90,11 +93,11 @@ namespace dexih.proxy.tests
             var bytes = new byte[] {65, 66, 67, 68};
             var content = new ByteArrayContent(bytes);
 
-            var result = await Client.PostAsync("/upload/file/file.zip", content);
-            Assert.True(result.IsSuccessStatusCode);
-            var url = await result.Content.ReadAsStringAsync();
+            var result = await Client.PostAsync("/upload/key/file/file.zip", content);
+            var returnValue = await JsonSerializer.DeserializeAsync<ReturnValue>(await result.Content.ReadAsStreamAsync(), serializeOptions);
+            Assert.Equal(true, returnValue.Success);
 
-            var result2 = await Client.GetAsync(url);
+            var result2 = await Client.GetAsync("/download/key/file/file.zip");
             var byteResult = await result2.Content.ReadAsByteArrayAsync();
 
             Assert.Equal("file.zip", result2.Content.Headers.ContentDisposition.FileName);
@@ -105,30 +108,27 @@ namespace dexih.proxy.tests
         [Fact]
         public async Task SendSimpleAsync()
         {
-            var result = await Client.GetAsync("/start/json/file.json");
-            Assert.True(result.IsSuccessStatusCode);
-            var data = await result.Content.ReadAsStringAsync();
-            var json = JObject.Parse(data);
-            var uploadUrl = json["UploadUrl"].ToString();
-            var downloadUrl = json["DownloadUrl"].ToString();
-
-            var content = new StringContent("{ test: \"worked\" }", Encoding.UTF8, "application/json");
-            var uploadTask = Client.PostAsync(uploadUrl, content);
-            var downloadTask = Client.GetAsync(downloadUrl);
-
-            Task.WaitAll(uploadTask, downloadTask);
-
-            var jsonText = await downloadTask.Result.Content.ReadAsStringAsync();
-            var jsonResult = JObject.Parse(jsonText); 
-
-            Assert.Equal("file.json", downloadTask.Result.Content.Headers.ContentDisposition.FileName);
-            Assert.Equal("application/json", downloadTask.Result.Content.Headers.ContentType.ToString());
-            Assert.Equal("worked", jsonResult["test"]);
+            var content = new StringContent("{ \"test\": \"worked\" }", Encoding.UTF8, "application/json");
+            var uploadTask = Client.PostAsync("/upload/key/json/file.json", content);
+            var downloadTask = Client.GetAsync("/download/key/json/file.json");
+        
+            var results = await Task.WhenAll(uploadTask, downloadTask);
+            
+            var returnValue = await JsonSerializer.DeserializeAsync<ReturnValue>(await results[0].Content.ReadAsStreamAsync(), serializeOptions);
+            Assert.Equal(true, returnValue.Success);
+        
+            var jsonText = await results[1].Content.ReadAsStringAsync();
+            var json = JsonDocument.Parse(jsonText); 
+        
+            Assert.Equal("file.json", results[1].Content.Headers.ContentDisposition.FileName);
+            Assert.Equal("application/json", results[1].Content.Headers.ContentType.ToString());
+            Assert.Equal("worked", json.RootElement.GetProperty("test").GetString());
         }
         
         [Theory]
         [InlineData(1_000_000, 2)] //small
-        [InlineData(1_000_000_000, 20)] //large size
+        [InlineData(100_000, 20)] //medium size/ concurrency
+       // [InlineData(1_000_000_000, 20)] //large size
         [InlineData(100_000, 2000)] //large concurrency
         public void SendLargeAsync(long size, long concurrent)
         {
@@ -139,29 +139,25 @@ namespace dexih.proxy.tests
             {
                 byteArray[i] = 65;
             }
-
+        
             Parallel.For(0, concurrent, async i =>
             {
-                var result = await Client.GetAsync("/start/file/file.zip");
-                Assert.True(result.IsSuccessStatusCode);
-                var data = await result.Content.ReadAsStringAsync();
-                var json = JObject.Parse(data);
-                var uploadUrl = json["UploadUrl"].ToString();
-                var downloadUrl = json["DownloadUrl"].ToString();
-
                 var content = new ByteArrayContent(byteArray);
-                var uploadTask = Client.PostAsync(uploadUrl, content);
-                var downloadTask = Client.GetAsync(downloadUrl);
-
-                await Task.WhenAll(uploadTask, downloadTask);
-
-                var byteResult = await downloadTask.Result.Content.ReadAsByteArrayAsync();
-
-                Assert.Equal("file.zip", downloadTask.Result.Content.Headers.ContentDisposition.FileName);
-                Assert.Equal("application/octet-stream", downloadTask.Result.Content.Headers.ContentType.ToString());
+                var uploadTask = Client.PostAsync($"/upload/key{i}/file/file.zip", content);
+                var downloadTask = Client.GetAsync($"/download/key{i}/file/file.zip");
+        
+                var results = await Task.WhenAll(uploadTask, downloadTask);
+        
+                var returnValue = await JsonSerializer.DeserializeAsync<ReturnValue>(await results[0].Content.ReadAsStreamAsync(), serializeOptions);
+                Assert.Equal(true, returnValue.Success);
+                
+                var byteResult = await results[1].Content.ReadAsByteArrayAsync();
+        
+                Assert.Equal("file.zip", results[1].Content.Headers.ContentDisposition.FileName);
+                Assert.Equal("application/octet-stream", results[1].Content.Headers.ContentType.ToString());
                 Assert.Equal(byteArray.Length, byteResult.Length);
             });
-
+        
             stopWatch.Stop();
             _output.WriteLine($"Size: {size}, Concurrent: {concurrent}.  Finished in {stopWatch.ElapsedMilliseconds}ms.");
             

@@ -1,0 +1,69 @@
+version: 1.0-rc.{build}
+# image: Visual Studio 2019
+image: Ubuntu
+configuration:
+- Debug
+- Release
+branches:
+  only:
+  - master
+  - release
+  - /dev-.*/
+
+skip_tags: true
+
+platform: Any CPU
+
+clone_depth: 1
+
+install:
+
+before_build:
+
+test_script:
+  - dotnet test 
+    
+
+artifacts:
+- path: Dexih.App.Proxy*.zip
+
+for:
+
+# The release branch publishes without the version suffix, making an official release.
+-
+  branches:
+    only:
+      - release
+
+  configuration: Release
+  build_script:
+  - dotnet restore Dexih.App.Proxy.sln -v Minimal
+  - dotnet build Dexih.App.Proxy.sln -c ${CONFIGURATION}
+
+  # - dotnet publish src/dexih.remote/dexih.remote.csproj -c ${CONFIGURATION} -p:Version=${APPVEYOR_BUILD_VERSION} -o ${APPVEYOR_BUILD_FOLDER}/dotnet
+  # - 7z a dexih.remote.${APPVEYOR_BUILD_VERSION}.zip ${APPVEYOR_BUILD_FOLDER}/dotnet/*
+
+  - dotnet publish ./src/dexih.proxy/dexih.proxy.csproj -c ${CONFIGURATION} -r linux-x64 -p:Version=${APPVEYOR_BUILD_VERSION} -o ${APPVEYOR_BUILD_FOLDER}/linux-x64
+  - 7z a Dexih.App.Proxy.Linux_${APPVEYOR_BUILD_VERSION}.zip ${APPVEYOR_BUILD_FOLDER}/linux-64/*
+
+  deploy:
+  - provider: GitHub
+    release: Dexih.Proxy-v${APPVEYOR_BUILD_VERSION}
+    description: 'Dexih Proxy Server - ${CONFIGURATION} release, version - ${APPVEYOR_BUILD_VERSION}'
+    auth_token:
+      secure: lEaZ/om1UTRS6Xa947/5WxZVbBW6A+ZHmPu7aXRRDqkjX1+LYTfh9xL1CueonyuC
+    artifact: /.*\.zip/
+    prerelease: false,
+    tag: ${APPVEYOR_BUILD_VERSION}
+
+# fallback configuration, create debug artefact only.
+-
+  configuration: Debug
+  build_script:
+    - dotnet restore Dexih.App.Proxy.sln -v Minimal
+    - dotnet build Dexih.App.Proxy.sln -c ${CONFIGURATION}
+    - dotnet publish ./src/dexih.proxy/dexih.proxy.csproj -c ${CONFIGURATION} -r linux-x64 -p:Version=${APPVEYOR_BUILD_VERSION} -o ${APPVEYOR_BUILD_FOLDER}/dotnet
+    - 7z a Dexih.App.Proxy.Linux_${APPVEYOR_BUILD_VERSION}.zip ${APPVEYOR_BUILD_FOLDER}/dotnet/*
+
+
+  

@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Folder Include="Controllers" />
+    <Folder Include="Scripts\linux" />
     <Folder Include="wwwroot\" />
   </ItemGroup>
   <ItemGroup>
@@ -13,5 +14,8 @@
     <PackageReference Include="Dexih.Utils.MessageHelpers" Version="1.0.21">
     </PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="Scripts\linux\*" />
   </ItemGroup>
 </Project>

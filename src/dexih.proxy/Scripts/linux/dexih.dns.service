@@ -1,0 +1,17 @@
+[Unit]
+Description=Dexih Proxy Service
+
+[Service]
+WorkingDirectory=/home/gary/app
+ExecStart=/home/dexih/dexih.proxy
+Restart=always
+# Restart service after 10 seconds if the dotnet service crashes:
+RestartSec=10
+SyslogIdentifier=dexih.proxy.
+User=root
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://+:5000
+Environment=AppSettings__HostName=https://<ip separated by dashes>.proxy.dexih.com
+
+[Install]
+WantedBy=multi-user.target

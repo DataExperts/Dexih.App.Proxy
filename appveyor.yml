@@ -62,7 +62,7 @@ for:
   build_script:
     - dotnet restore Dexih.App.Proxy.sln -v Minimal
     - dotnet build Dexih.App.Proxy.sln -c ${CONFIGURATION}
-    - dotnet publish ./src/dexih.proxy/dexih.proxy.csproj -c ${CONFIGURATION} -r linux-x64 -p:Version=${APPVEYOR_BUILD_VERSION} -o ${APPVEYOR_BUILD_FOLDER}/dotnet
+    - dotnet publish ./src/dexih.proxy/dexih.proxy.csproj -c ${CONFIGURATION} -r linux-x64 -p:Version=${APPVEYOR_BUILD_VERSION} -o ${APPVEYOR_BUILD_FOLDER}/dotnet -p:PublishSingleFile=true
     - 7z a Dexih.App.Proxy.Linux_${APPVEYOR_BUILD_VERSION}.zip ${APPVEYOR_BUILD_FOLDER}/dotnet/*
 
 

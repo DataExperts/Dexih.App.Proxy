@@ -3,7 +3,6 @@ using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
 using dexih.proxy.Models;
-using Dexih.Utils.Crypto;
 using Dexih.Utils.MessageHelpers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -107,8 +106,6 @@ namespace dexih.proxy
                     .WithOrigins();
             });
 
-            var rand = EncryptString.GenerateRandomKey();
-            
             // these headers pass the client ipAddress from proxy servers (such as nginx)
             app.UseForwardedHeaders(new ForwardedHeadersOptions
             {
@@ -135,10 +132,6 @@ namespace dexih.proxy
                     using (var writer = new StreamWriter(context.Response.Body))
                     {
                         await JsonSerializer.SerializeAsync(writer.BaseStream, returnValue, options: serializeOptions);
-
-                        // var result = Json.SerializeObject(returnValue, rand);
-                        // await writer.WriteAsync(result);
-                        // await writer.FlushAsync().ConfigureAwait(false);
                     }
                 }
                 

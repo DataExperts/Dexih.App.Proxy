@@ -2,7 +2,7 @@
 Description=Dexih Proxy Service
 
 [Service]
-WorkingDirectory=/home/gary/app
+WorkingDirectory=/home/dexih
 ExecStart=/home/dexih/dexih.proxy
 Restart=always
 # Restart service after 10 seconds if the dotnet service crashes:

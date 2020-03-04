@@ -135,14 +135,14 @@ namespace dexih.proxy
                     }
                 }
                 
-                string GetHost()
-                {
-                    if (string.IsNullOrEmpty(hostName))
-                    {
-                        return $"{context.Request.Scheme}://{context.Request.Host}";
-                    }
-                    return hostName;
-                }
+                // string GetHost()
+                // {
+                //     if (string.IsNullOrEmpty(hostName))
+                //     {
+                //         return $"{context.Request.Scheme}://{context.Request.Host}";
+                //     }
+                //     return hostName;
+                // }
 
                 try
                 {
@@ -295,7 +295,7 @@ namespace dexih.proxy
                             catch (Exception e)
                             {
                                 var returnValue = new ReturnValue(false, "Proxy error: " + e.Message, e);
-                                SendFailedResponse(returnValue);
+                                await SendFailedResponse(returnValue);
                             }
 
                             break;
@@ -318,7 +318,7 @@ namespace dexih.proxy
                             catch (Exception e)
                             {
                                 var returnValue = new ReturnValue(false, "Proxy error: " + e.Message, e);
-                                SendFailedResponse(returnValue);
+                                await SendFailedResponse(returnValue);
                             }
 
                             break;
